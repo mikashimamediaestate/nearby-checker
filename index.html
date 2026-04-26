@@ -21,6 +21,18 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
 .address-row button:hover{background:#1344a0}
 .status{font-size:12px;margin-top:6px;min-height:16px;color:#666}
 .status.ok{color:#2a7a2a}.status.err{color:#c0392b}
+/* ピン調整バナー */
+.pin-adjust-bar{display:none;margin-top:8px;padding:8px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:12px;color:#856404}
+.pin-adjust-bar.active{display:block}
+.pin-btn-row{display:flex;gap:6px;margin-top:6px}
+.pin-btn{flex:1;padding:6px 8px;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-family:inherit}
+.pin-btn-move{background:#ffc107;color:#333}
+.pin-btn-move:hover{background:#e0a800}
+.pin-btn-move.on{background:#dc3545;color:#fff}
+.pin-btn-recalc{background:#1a56a0;color:#fff}
+.pin-btn-recalc:hover{background:#1344a0}
+.pin-coords{font-size:11px;color:#666;margin-top:4px;font-family:monospace}
+/* カテゴリ */
 .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .cat-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s}
 .cat-item:hover{background:#f0f4ff}
@@ -43,7 +55,7 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
 .api-row input{flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:monospace}
 .api-row button{padding:7px 10px;background:#555;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
 .no-results{font-size:13px;color:#999;padding:16px 0;text-align:center}
-/* 個別検索セクション */
+/* 個別検索 */
 .manual-section{padding:14px 16px;border-bottom:1px solid #eee;background:#f0fff4}
 .manual-section .section-title{color:#2a7a2a}
 .section-note{font-size:11px;color:#888;margin-bottom:6px}
@@ -75,11 +87,22 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
     <div class="section">
       <div class="section-title">物件住所</div>
       <div class="address-row">
-        <input type="text" id="address" placeholder="例：佐賀県佐賀市多布施1-7-31" onkeydown="if(event.key==='Enter')doSearch()"/>
+        <input type="text" id="address" placeholder="例：佐賀県佐賀市大和町大字東山田2832-6" onkeydown="if(event.key==='Enter')doSearch()"/>
         <button onclick="doSearch()">検索</button>
       </div>
       <div id="search-status" class="status"></div>
+
+      <!-- ピン調整エリア -->
+      <div class="pin-adjust-bar active" id="pin-adjust-bar">
+        <div>📍 <strong>物件ピンの位置がずれている場合</strong>は下のボタンで調整できます</div>
+        <div class="pin-btn-row">
+          <button class="pin-btn pin-btn-move" id="pin-move-btn" onclick="togglePinMove()">✋ ピンを移動する</button>
+          <button class="pin-btn pin-btn-recalc" onclick="recalcFromPin()" id="recalc-btn" style="display:none">🔄 この位置で再計算</button>
+        </div>
+        <div class="pin-coords" id="pin-coords"></div>
+      </div>
     </div>
+
     <div class="section">
       <div class="section-title">施設カテゴリ（自動検索）</div>
       <div class="cat-grid" id="cat-grid"></div>
@@ -126,6 +149,7 @@ const CATS=[
 const DEFAULT_ON=['supermarket','convenience','elementary','junior','drugstore','post'];
 let apiKey='',map=null,geocoder=null,places=null,distMatrix=null,originLatLng=null,homeMarker=null,allResults=[],markerList=[];
 let manualMarker=null,manualIw=null;
+let pinMoveMode=false;
 
 function buildGrid(){
   const g=document.getElementById('cat-grid');
@@ -161,21 +185,107 @@ window.initMaps=function(){
   setStatus('key-status','APIキーを設定しました ✓','ok');
 };
 
+// ピン移動モード切り替え
+function togglePinMove(){
+  if(!homeMarker){alert('先に物件住所を検索してください');return;}
+  pinMoveMode=!pinMoveMode;
+  const btn=document.getElementById('pin-move-btn');
+  const recalcBtn=document.getElementById('recalc-btn');
+  if(pinMoveMode){
+    btn.textContent='✋ 移動モード ON（クリックで終了）';
+    btn.classList.add('on');
+    recalcBtn.style.display='';
+    homeMarker.setDraggable(true);
+    map.setOptions({draggableCursor:'crosshair'});
+    // マーカードラッグ中に座標更新
+    homeMarker.addListener('drag',()=>{
+      const pos=homeMarker.getPosition();
+      updatePinCoords(pos);
+    });
+    homeMarker.addListener('dragend',()=>{
+      originLatLng=homeMarker.getPosition();
+      updatePinCoords(originLatLng);
+      setStatus('search-status','ピンを移動しました。「この位置で再計算」を押してください','ok');
+    });
+    setStatus('search-status','ピンをドラッグして正しい位置に移動してください','');
+  } else {
+    btn.textContent='✋ ピンを移動する';
+    btn.classList.remove('on');
+    homeMarker.setDraggable(false);
+    map.setOptions({draggableCursor:null});
+    setStatus('search-status','','');
+  }
+}
+
+function updatePinCoords(pos){
+  const lat=pos.lat().toFixed(6),lng=pos.lng().toFixed(6);
+  document.getElementById('pin-coords').textContent=`現在位置: ${lat}, ${lng}`;
+}
+
+// ピン移動後に再計算
+async function recalcFromPin(){
+  if(!originLatLng){return;}
+  // 移動モードを終了
+  pinMoveMode=true;togglePinMove();
+  // 施設再検索
+  setStatus('search-status','移動後の位置で再計算中...','');
+  clearMarkers();allResults=[];
+  document.getElementById('results-list').innerHTML='';
+  document.getElementById('copy-section').style.display='none';
+  try{
+    const selected=CATS.filter(c=>document.getElementById('cat_'+c.id)?.checked);
+    const results=await Promise.all(selected.map(c=>searchCat(c)));
+    let rawResults=[];
+    results.forEach((ps,i)=>{
+      if(ps&&ps.length>0){
+        ps.slice(0,3).forEach(p=>{
+          rawResults.push({cat:selected[i],name:p.name,latlng:p.geometry.location});
+        });
+      }
+    });
+    setStatus('search-status','徒歩時間を計算中...','');
+    const chunks=[];
+    for(let i=0;i<rawResults.length;i+=25)chunks.push(rawResults.slice(i,i+25));
+    for(const chunk of chunks){
+      const dmResult=await getDistanceMatrix(chunk.map(r=>r.latlng));
+      chunk.forEach((r,i)=>{
+        const el=dmResult.rows[0].elements[i];
+        if(el.status==='OK'){
+          r.walkDistM=el.distance.value;
+          r.walkMins=Math.ceil(el.distance.value/80);
+          r.walkText=r.walkMins+'分';
+        } else {
+          const dx=r.latlng.lat()-originLatLng.lat(),dy=r.latlng.lng()-originLatLng.lng();
+          const m=Math.round(Math.sqrt(dx*dx+dy*dy)*111000);
+          r.walkDistM=m;r.walkMins=Math.ceil(m/80);r.walkText=r.walkMins+'分';
+        }
+      });
+    }
+    allResults=rawResults.sort((a,b)=>a.walkDistM-b.walkDistM);
+    setStatus('search-status',`再計算完了：${allResults.length}件`,'ok');
+    renderResults(allResults);addMarkers(allResults);
+  }catch(e){setStatus('search-status','エラー: '+e.message,'err');}
+}
+
 async function doSearch(){
   if(!apiKey){alert('先にAPIキーを設定してください');return;}
   if(!places){alert('Google Mapsを読み込み中です。少し待ってから再試行してください。');return;}
   const addr=document.getElementById('address').value.trim();
   if(!addr){alert('住所を入力してください');return;}
   setStatus('search-status','住所を検索中...','');
-  clearMarkers();allResults=[];
+  clearMarkers();allResults=[];pinMoveMode=false;
   document.getElementById('results-list').innerHTML='';
   document.getElementById('copy-section').style.display='none';
+  document.getElementById('pin-coords').textContent='';
+  document.getElementById('recalc-btn').style.display='none';
+  document.getElementById('pin-move-btn').textContent='✋ ピンを移動する';
+  document.getElementById('pin-move-btn').classList.remove('on');
   try{
     originLatLng=await geocode(addr);
     map.setCenter(originLatLng);map.setZoom(16);
     if(homeMarker)homeMarker.setMap(null);
     homeMarker=new google.maps.Marker({
-      position:originLatLng,map,title:'物件',zIndex:999,
+      position:originLatLng,map,title:'物件',zIndex:999,draggable:false,
       icon:{
         path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
         fillColor:'#1a56a0',fillOpacity:1,strokeColor:'#fff',strokeWeight:2,
@@ -185,6 +295,7 @@ async function doSearch(){
     const iw0=new google.maps.InfoWindow({content:'<div style="font-size:13px;font-weight:bold;padding:4px">📍 物件</div>'});
     iw0.open(map,homeMarker);
     homeMarker.addListener('click',()=>iw0.open(map,homeMarker));
+    updatePinCoords(originLatLng);
 
     setStatus('search-status','周辺施設を検索中...','');
     const selected=CATS.filter(c=>document.getElementById('cat_'+c.id)?.checked);
@@ -197,13 +308,11 @@ async function doSearch(){
         });
       }
     });
-
     setStatus('search-status','徒歩時間を計算中...','');
     const chunks=[];
     for(let i=0;i<rawResults.length;i+=25)chunks.push(rawResults.slice(i,i+25));
     for(const chunk of chunks){
-      const dests=chunk.map(r=>r.latlng);
-      const dmResult=await getDistanceMatrix(dests);
+      const dmResult=await getDistanceMatrix(chunk.map(r=>r.latlng));
       chunk.forEach((r,i)=>{
         const el=dmResult.rows[0].elements[i];
         if(el.status==='OK'){
@@ -213,9 +322,7 @@ async function doSearch(){
         } else {
           const dx=r.latlng.lat()-originLatLng.lat(),dy=r.latlng.lng()-originLatLng.lng();
           const m=Math.round(Math.sqrt(dx*dx+dy*dy)*111000);
-          r.walkDistM=m;
-          r.walkMins=Math.ceil(m/80);
-          r.walkText=r.walkMins+'分';
+          r.walkDistM=m;r.walkMins=Math.ceil(m/80);r.walkText=r.walkMins+'分';
         }
       });
     }
@@ -225,7 +332,6 @@ async function doSearch(){
   }catch(e){setStatus('search-status','エラー: '+e.message,'err');}
 }
 
-// 個別施設検索（施設名または住所）
 async function doManualSearch(){
   if(!originLatLng){alert('先に物件住所を検索してください');return;}
   const query=document.getElementById('manual-input').value.trim();
@@ -233,26 +339,18 @@ async function doManualSearch(){
   setStatus('manual-status','検索中...','');
   document.getElementById('manual-result').style.display='none';
   try{
-    let destLatLng=null;
-    let destName=query;
-    // まずPlaces textSearchで施設名として検索（より確実）
+    let destLatLng=null,destName=query;
     try{
-      const placeResult=await searchPlaceByName(query);
-      destLatLng=placeResult.latlng;
-      destName=placeResult.name;
+      const r=await searchPlaceByName(query);
+      destLatLng=r.latlng;destName=r.name;
     }catch(e){
-      // 施設名で見つからなければ住所として試みる
       destLatLng=await geocode(query);
     }
-
-    // 距離計算（道路距離÷80で切り上げ）
     const dmResult=await getDistanceMatrix([destLatLng]);
     const el=dmResult.rows[0].elements[0];
     if(el.status!=='OK')throw new Error('距離を計算できませんでした');
     const distM=el.distance.value;
     const mins=Math.ceil(distM/80);
-
-    // 地図にマーカー表示
     if(manualMarker)manualMarker.setMap(null);
     if(manualIw)manualIw.close();
     manualMarker=new google.maps.Marker({
@@ -265,17 +363,13 @@ async function doManualSearch(){
     manualIw.open(map,manualMarker);
     manualMarker.addListener('click',()=>manualIw.open(map,manualMarker));
     map.setCenter(destLatLng);
-
-    // 結果表示
     document.getElementById('m-name').textContent=destName;
     document.getElementById('m-walk').textContent='🚶 徒歩'+mins+'分';
     document.getElementById('m-dist').textContent=distM+'m';
     document.getElementById('m-link').href=makeRouteUrl(destLatLng);
     document.getElementById('manual-result').style.display='';
     setStatus('manual-status','','');
-  }catch(e){
-    setStatus('manual-status',e.message,'err');
-  }
+  }catch(e){setStatus('manual-status',e.message,'err');}
 }
 
 function searchPlaceByName(name){
@@ -290,10 +384,8 @@ function searchPlaceByName(name){
 function getDistanceMatrix(destinations){
   return new Promise((res,rej)=>{
     distMatrix.getDistanceMatrix({
-      origins:[originLatLng],
-      destinations:destinations,
-      travelMode:google.maps.TravelMode.WALKING,
-      language:'ja'
+      origins:[originLatLng],destinations,
+      travelMode:google.maps.TravelMode.WALKING,language:'ja'
     },(result,status)=>{
       if(status==='OK')res(result);
       else rej(new Error('DistanceMatrix error: '+status));
