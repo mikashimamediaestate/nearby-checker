@@ -30,10 +30,10 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
 .result-item:hover .result-name{color:#1a56a0}
 .result-cat{font-size:11px;color:#888;margin-bottom:2px}
 .result-name{font-size:14px;font-weight:700;color:#222;margin-bottom:4px}
-.dist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px}
 .badge-walk{background:#e8f0fe;color:#1a56a0;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700}
-.badge-dist{background:#f0f0f0;color:#666;border-radius:4px;padding:3px 8px;font-size:11px}
-.route-link{font-size:11px;color:#1a56a0;text-decoration:none;margin-top:3px;display:inline-block}
+.badge-dist{background:#f0f0f0;color:#555;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600}
+.route-link{font-size:11px;color:#1a56a0;text-decoration:none;display:inline-block}
 .route-link:hover{text-decoration:underline}
 .copy-section{padding:12px 16px;background:#f8f9ff;border-top:1px solid #e0e0e0}
 .copy-btn{width:100%;padding:9px;background:#2a7a2a;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
@@ -43,7 +43,6 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
 .api-row input{flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:monospace}
 .api-row button{padding:7px 10px;background:#555;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
 .no-results{font-size:13px;color:#999;padding:16px 0;text-align:center}
-.loading{font-size:12px;color:#888;padding:8px 0}
 </style>
 </head>
 <body>
@@ -171,7 +170,6 @@ async function doSearch(){
     });
 
     setStatus('search-status','徒歩時間を計算中...','');
-    // Distance Matrix APIで徒歩時間を一括取得（25件ずつ）
     const chunks=[];
     for(let i=0;i<rawResults.length;i+=25)chunks.push(rawResults.slice(i,i+25));
     for(const chunk of chunks){
@@ -181,21 +179,18 @@ async function doSearch(){
         const el=dmResult.rows[0].elements[i];
         if(el.status==='OK'){
           r.walkMins=Math.ceil(el.duration.value/60);
-          r.walkDist=el.distance.value;
-          r.walkText=el.duration.text;
-          r.distText=el.distance.text;
+          r.walkDistM=el.distance.value;
+          r.walkText=r.walkMins+'分';
         } else {
-          // フォールバック：直線距離
           const dx=r.latlng.lat()-originLatLng.lat(),dy=r.latlng.lng()-originLatLng.lng();
           const m=Math.round(Math.sqrt(dx*dx+dy*dy)*111000);
           r.walkMins=Math.max(1,Math.round(m/80));
-          r.walkDist=m;
+          r.walkDistM=m;
           r.walkText=r.walkMins+'分';
-          r.distText=m+'m';
         }
       });
     }
-    allResults=rawResults.sort((a,b)=>a.walkDist-b.walkDist);
+    allResults=rawResults.sort((a,b)=>a.walkDistM-b.walkDistM);
     setStatus('search-status',`${allResults.length}件見つかりました`,'ok');
     renderResults(allResults);addMarkers(allResults);
   }catch(e){setStatus('search-status','エラー: '+e.message,'err');}
@@ -251,7 +246,7 @@ function renderResults(list){
       <div class="result-name">${r.name}</div>
       <div class="dist-row">
         <span class="badge-walk">🚶 徒歩${r.walkText}</span>
-        <span class="badge-dist">${r.distText}</span>
+        <span class="badge-dist">${r.walkDistM}m</span>
       </div>
       <a class="route-link" href="${makeRouteUrl(r.latlng)}" target="_blank" onclick="event.stopPropagation()">Googleマップでルート確認 →</a>
     </div>`).join('');
@@ -269,7 +264,7 @@ function addMarkers(list){
       content:`<div style="font-size:13px;padding:4px;min-width:160px">
         <b>${r.name}</b><br>
         <span style="color:#555;font-size:11px">${r.cat.label}</span><br>
-        <span style="color:#1a56a0;font-weight:bold">🚶 徒歩${r.walkText}（${r.distText}）</span><br>
+        <span style="color:#1a56a0;font-weight:bold">🚶 徒歩${r.walkText}（${r.walkDistM}m）</span><br>
         <a href="${makeRouteUrl(r.latlng)}" target="_blank" style="color:#1a56a0;font-size:11px">Googleマップでルート確認 →</a>
       </div>`
     });
@@ -291,7 +286,7 @@ function clearMarkers(){markerList.forEach(m=>{m.marker.setMap(null);m.iw.close(
 
 function copyText(){
   const active=new Set(CATS.filter(c=>document.getElementById('cat_'+c.id)?.checked).map(c=>c.id));
-  const lines=allResults.filter(r=>active.has(r.cat.id)).map(r=>`${r.cat.label}：${r.name}　${r.distText}（徒歩${r.walkText}）`);
+  const lines=allResults.filter(r=>active.has(r.cat.id)).map(r=>`${r.cat.label}：${r.name}　${r.walkDistM}m（徒歩${r.walkText}）`);
   navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('コピーしました！'));
 }
 
