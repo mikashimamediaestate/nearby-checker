@@ -178,14 +178,15 @@ async function doSearch(){
       chunk.forEach((r,i)=>{
         const el=dmResult.rows[0].elements[i];
         if(el.status==='OK'){
-          r.walkMins=Math.ceil(el.duration.value/60);
+          // 不動産公正競争規約に準拠：道路距離(m)÷80を切り上げ
           r.walkDistM=el.distance.value;
+          r.walkMins=Math.ceil(el.distance.value/80);
           r.walkText=r.walkMins+'分';
         } else {
           const dx=r.latlng.lat()-originLatLng.lat(),dy=r.latlng.lng()-originLatLng.lng();
           const m=Math.round(Math.sqrt(dx*dx+dy*dy)*111000);
-          r.walkMins=Math.max(1,Math.round(m/80));
           r.walkDistM=m;
+          r.walkMins=Math.ceil(m/80);
           r.walkText=r.walkMins+'分';
         }
       });
