@@ -43,6 +43,18 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
 .api-row input{flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:monospace}
 .api-row button{padding:7px 10px;background:#555;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
 .no-results{font-size:13px;color:#999;padding:16px 0;text-align:center}
+/* 個別検索セクション */
+.manual-section{padding:14px 16px;border-bottom:1px solid #eee;background:#f0fff4}
+.manual-section .section-title{color:#2a7a2a}
+.section-note{font-size:11px;color:#888;margin-bottom:6px}
+.manual-row{display:flex;gap:6px;margin-bottom:6px}
+.manual-row input{flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit}
+.manual-row button{padding:7px 10px;background:#2a7a2a;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;white-space:nowrap}
+.manual-row button:hover{background:#1e5e1e}
+.manual-result{margin-top:8px;padding:8px 10px;background:#fff;border:1px solid #b2dfdb;border-radius:6px;font-size:13px;display:none}
+.manual-result .m-name{font-weight:700;color:#222;margin-bottom:4px}
+.m-link{font-size:11px;color:#1a56a0;text-decoration:none}
+.m-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -63,15 +75,35 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
     <div class="section">
       <div class="section-title">物件住所</div>
       <div class="address-row">
-        <input type="text" id="address" placeholder="例：佐賀市多布施1-7-31" onkeydown="if(event.key==='Enter')doSearch()"/>
+        <input type="text" id="address" placeholder="例：佐賀県佐賀市多布施1-7-31" onkeydown="if(event.key==='Enter')doSearch()"/>
         <button onclick="doSearch()">検索</button>
       </div>
       <div id="search-status" class="status"></div>
     </div>
     <div class="section">
-      <div class="section-title">施設カテゴリ</div>
+      <div class="section-title">施設カテゴリ（自動検索）</div>
       <div class="cat-grid" id="cat-grid"></div>
     </div>
+
+    <!-- 個別施設検索 -->
+    <div class="manual-section">
+      <div class="section-title">📍 施設名・住所で直接検索</div>
+      <div class="section-note">マイソク記載の施設など、個別に距離を調べたい場合</div>
+      <div class="manual-row">
+        <input type="text" id="manual-input" placeholder="例：大和正信会ふじおか病院" onkeydown="if(event.key==='Enter')doManualSearch()"/>
+        <button onclick="doManualSearch()">調べる</button>
+      </div>
+      <div id="manual-status" class="status"></div>
+      <div id="manual-result" class="manual-result">
+        <div class="m-name" id="m-name"></div>
+        <div class="dist-row" style="margin:4px 0">
+          <span class="badge-walk" id="m-walk"></span>
+          <span class="badge-dist" id="m-dist"></span>
+        </div>
+        <a class="m-link" id="m-link" href="#" target="_blank">Googleマップでルート確認 →</a>
+      </div>
+    </div>
+
     <div id="results-list" class="results-list"></div>
     <div class="copy-section" id="copy-section" style="display:none">
       <button class="copy-btn" onclick="copyText()">入稿用テキストをコピー</button>
@@ -79,7 +111,6 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;min-heig
   </div>
   <div class="map-area"><div id="map"></div></div>
 </div>
-<div id="map-dummy" style="display:none"></div>
 <script>
 const CATS=[
   {id:'supermarket',label:'スーパー',keyword:'スーパーマーケット',color:'#e74c3c'},
@@ -89,14 +120,12 @@ const CATS=[
   {id:'nursery',label:'保育園・幼稚園',keyword:'保育園',color:'#8e44ad'},
   {id:'hospital',label:'病院・クリニック',keyword:'病院 クリニック',color:'#c0392b'},
   {id:'drugstore',label:'ドラッグストア',keyword:'ドラッグストア 薬局',color:'#2980b9'},
-  {id:'park',label:'公園',keyword:'公園',color:'#1abc9c'},
-  {id:'bank',label:'銀行',keyword:'銀行',color:'#f39c12'},
   {id:'post',label:'郵便局',keyword:'郵便局',color:'#e74c3c'},
   {id:'station',label:'駅',keyword:'駅',color:'#34495e'},
-  {id:'gas',label:'ガソリンスタンド',keyword:'ガソリンスタンド',color:'#7f8c8d'},
 ];
-const DEFAULT_ON=['supermarket','convenience','elementary','junior','nursery','hospital','drugstore','park'];
+const DEFAULT_ON=['supermarket','convenience','elementary','junior','drugstore','post'];
 let apiKey='',map=null,geocoder=null,places=null,distMatrix=null,originLatLng=null,homeMarker=null,allResults=[],markerList=[];
+let manualMarker=null,manualIw=null;
 
 function buildGrid(){
   const g=document.getElementById('cat-grid');
@@ -178,7 +207,6 @@ async function doSearch(){
       chunk.forEach((r,i)=>{
         const el=dmResult.rows[0].elements[i];
         if(el.status==='OK'){
-          // 不動産公正競争規約に準拠：道路距離(m)÷80を切り上げ
           r.walkDistM=el.distance.value;
           r.walkMins=Math.ceil(el.distance.value/80);
           r.walkText=r.walkMins+'分';
@@ -195,6 +223,68 @@ async function doSearch(){
     setStatus('search-status',`${allResults.length}件見つかりました`,'ok');
     renderResults(allResults);addMarkers(allResults);
   }catch(e){setStatus('search-status','エラー: '+e.message,'err');}
+}
+
+// 個別施設検索（施設名または住所）
+async function doManualSearch(){
+  if(!originLatLng){alert('先に物件住所を検索してください');return;}
+  const query=document.getElementById('manual-input').value.trim();
+  if(!query){alert('施設名または住所を入力してください');return;}
+  setStatus('manual-status','検索中...','');
+  document.getElementById('manual-result').style.display='none';
+  try{
+    let destLatLng=null;
+    let destName=query;
+    // まずPlaces textSearchで施設名として検索（より確実）
+    try{
+      const placeResult=await searchPlaceByName(query);
+      destLatLng=placeResult.latlng;
+      destName=placeResult.name;
+    }catch(e){
+      // 施設名で見つからなければ住所として試みる
+      destLatLng=await geocode(query);
+    }
+
+    // 距離計算（道路距離÷80で切り上げ）
+    const dmResult=await getDistanceMatrix([destLatLng]);
+    const el=dmResult.rows[0].elements[0];
+    if(el.status!=='OK')throw new Error('距離を計算できませんでした');
+    const distM=el.distance.value;
+    const mins=Math.ceil(distM/80);
+
+    // 地図にマーカー表示
+    if(manualMarker)manualMarker.setMap(null);
+    if(manualIw)manualIw.close();
+    manualMarker=new google.maps.Marker({
+      position:destLatLng,map,title:destName,zIndex:998,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:'#e74c3c',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+    });
+    manualIw=new google.maps.InfoWindow({
+      content:`<div style="font-size:13px;padding:4px"><b>${destName}</b><br><span style="color:#1a56a0;font-weight:bold">🚶 徒歩${mins}分（${distM}m）</span></div>`
+    });
+    manualIw.open(map,manualMarker);
+    manualMarker.addListener('click',()=>manualIw.open(map,manualMarker));
+    map.setCenter(destLatLng);
+
+    // 結果表示
+    document.getElementById('m-name').textContent=destName;
+    document.getElementById('m-walk').textContent='🚶 徒歩'+mins+'分';
+    document.getElementById('m-dist').textContent=distM+'m';
+    document.getElementById('m-link').href=makeRouteUrl(destLatLng);
+    document.getElementById('manual-result').style.display='';
+    setStatus('manual-status','','');
+  }catch(e){
+    setStatus('manual-status',e.message,'err');
+  }
+}
+
+function searchPlaceByName(name){
+  return new Promise((res,rej)=>{
+    places.textSearch({query:name,location:originLatLng,radius:10000},(r,s)=>{
+      if(s==='OK'&&r[0])res({latlng:r[0].geometry.location,name:r[0].name});
+      else rej(new Error('施設が見つかりませんでした'));
+    });
+  });
 }
 
 function getDistanceMatrix(destinations){
