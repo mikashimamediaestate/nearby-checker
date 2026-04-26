@@ -141,7 +141,7 @@ const CATS=[
   {id:'elementary',label:'小学校',keyword:'小学校',color:'#27ae60'},
   {id:'junior',label:'中学校',keyword:'中学校',color:'#16a085'},
   {id:'nursery',label:'保育園・幼稚園',keyword:'保育園',color:'#8e44ad'},
-  {id:'hospital',label:'病院・クリニック',keyword:'病院 クリニック',color:'#c0392b'},
+  {id:'hospital',label:'総合病院',keyword:'総合病院',color:'#c0392b'},
   {id:'drugstore',label:'ドラッグストア',keyword:'ドラッグストア 薬局',color:'#2980b9'},
   {id:'post',label:'郵便局',keyword:'郵便局',color:'#e74c3c'},
   {id:'station',label:'駅',keyword:'駅',color:'#34495e'},
@@ -197,7 +197,6 @@ function togglePinMove(){
     recalcBtn.style.display='';
     homeMarker.setDraggable(true);
     map.setOptions({draggableCursor:'crosshair'});
-    // マーカードラッグ中に座標更新
     homeMarker.addListener('drag',()=>{
       const pos=homeMarker.getPosition();
       updatePinCoords(pos);
@@ -222,12 +221,9 @@ function updatePinCoords(pos){
   document.getElementById('pin-coords').textContent=`現在位置: ${lat}, ${lng}`;
 }
 
-// ピン移動後に再計算
 async function recalcFromPin(){
   if(!originLatLng){return;}
-  // 移動モードを終了
   pinMoveMode=true;togglePinMove();
-  // 施設再検索
   setStatus('search-status','移動後の位置で再計算中...','');
   clearMarkers();allResults=[];
   document.getElementById('results-list').innerHTML='';
