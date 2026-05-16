@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物件進捗ダッシュボード｜メディアエステート</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1A2B4A;--yellow:#FFE600;--bg:#F4F5F7;--card:#fff;--border:#E2E5EA;--text:#1A2B4A;--muted:#6B7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--navy);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(26,43,74,.2)}
+.logo{width:34px;height:34px;background:var(--yellow);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--navy);flex-shrink:0}
+.h-title{color:#fff;font-size:15px;font-weight:700;margin-left:10px}
+.h-sub{color:rgba(255,255,255,.5);font-size:11px}
+.h-stamp{font-size:11px;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.12)}
+.main{max-width:1280px;margin:0 auto;padding:20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:580px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 18px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.open::before{background:#10B981}.kpi.applied::before{background:#F59E0B}.kpi.hid::before{background:#9CA3AF}.kpi.sold::before{background:#EF4444}
+.kpi:hover{transform:translateY(-1px);border-color:#CBD5E1}
+.kpi.active{box-shadow:0 0 0 2px var(--navy);border-color:var(--navy)}
+.kpi-n{font-size:30px;font-weight:700;line-height:1;margin-bottom:3px}
+.kpi.open .kpi-n{color:#10B981}.kpi.applied .kpi-n{color:#F59E0B}.kpi.hid .kpi-n{color:#9CA3AF}.kpi.sold .kpi-n{color:#EF4444}
+.kpi-l{font-size:12px;color:var(--muted);font-weight:500}
+.fbar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.chip{font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Noto Sans JP',sans-serif}
+.chip:hover{background:#E9EBF0}
+.chip.a-all{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chip.a-open{background:#10B981;color:#fff;border-color:#10B981}
+.chip.a-applied{background:#F59E0B;color:#fff;border-color:#F59E0B}
+.chip.a-hid{background:#6B7280;color:#fff;border-color:#6B7280}
+.chip.a-sold{background:#EF4444;color:#fff;border-color:#EF4444}
+.sep{width:1px;background:var(--border);height:26px;align-self:center}
+select{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+.vbtns{display:flex;gap:4px;margin-left:auto}
+.vbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.vbtn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.count{font-size:12px;color:var(--muted);margin-bottom:12px}
+.area-sec{margin-bottom:24px}
+.area-hd{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.area-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.pcard{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px;cursor:pointer;transition:all .15s;position:relative}
+.pcard:hover{border-color:#94A3B8;box-shadow:0 4px 12px rgba(0,0,0,.07);transform:translateY(-1px)}
+.pcard.sold{opacity:.55}
+.ct{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:8px}
+.cn{font-size:13px;font-weight:700;line-height:1.4}
+.cnum{font-size:11px;color:var(--muted);margin-top:1px}
+.sbadge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;border:1px solid}
+.sb-open{background:#ECFDF5;color:#065F46;border-color:#6EE7B7}
+.sb-applied{background:#FFFBEB;color:#92400E;border-color:#FCD34D}
+.sb-hid{background:#F3F4F6;color:#4B5563;border-color:#D1D5DB}
+.sb-sold{background:#FEF2F2;color:#991B1B;border-color:#FCA5A5}
+.cprice{font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px;line-height:1}
+.cprice .yen{font-size:11px;font-weight:400;color:var(--muted)}
+.cprice.sp{font-size:13px;color:#991B1B;font-weight:500}
+.cmeta{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.mrow{display:flex;align-items:flex-start;gap:4px;font-size:11px;color:var(--muted);line-height:1.4}
+.portals{display:flex;gap:3px;flex-wrap:wrap}
+.ptag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;border:1px solid}
+.pt-pub{background:#ECFDF5;color:#065F46;border-color:#6EE7B7}
+.pt-nopub{background:#F3F4F6;color:#6B7280;border-color:#D1D5DB}
+.pt-none{background:#F9FAFB;color:#9CA3AF;border-color:#E5E7EB}
+.calert{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:6px}
+.al-down{background:#FEF9C3;color:#854D0E}
+.al-new{background:#EFF6FF;color:#1E40AF}
+.hmbadge{position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#EEF2FF;color:#3730A3}
+.hmbadge.yoka{background:#FFF7ED;color:#C2410C}
+.twrap{overflow-x:auto;background:var(--card);border-radius:12px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:9px 11px;font-size:11px;font-weight:700;color:var(--muted);background:#F8F9FB;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.ts td{color:#9CA3AF;background:#FAFAFA}
+tr:not(.ts):hover td{background:#F8FAFF;cursor:pointer}
+.moverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.moverlay.hidden{display:none!important}
+.modal{background:var(--card);border-radius:16px;border:1px solid var(--border);max-width:460px;width:100%;max-height:88vh;overflow-y:auto}
+.mhdr{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:sticky;top:0;background:var(--card);border-radius:16px 16px 0 0;z-index:1}
+.mtitle{font-size:16px;font-weight:700}
+.msub{font-size:11px;color:var(--muted);margin-top:2px}
+.mclose{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--bg);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;font-weight:700}
+.mbody{padding:18px 20px 22px}
+.mprice{font-size:26px;font-weight:700;color:var(--navy);margin-bottom:14px}
+.mprice .yen{font-size:13px;font-weight:400;color:var(--muted)}
+.msect{margin-bottom:16px}
+.msect-t{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.di label{font-size:10px;color:var(--muted);display:block;margin-bottom:2px}
+.di span{font-size:13px;font-weight:500}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pbox{background:var(--bg);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border)}
+.pbox-l{font-size:10px;color:var(--muted);margin-bottom:5px;font-weight:700}
+.nbox{background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;line-height:1.6}
+.mlink{display:block;text-align:center;margin-top:14px;padding:10px;background:var(--navy);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header class="header">
+  <div style="display:flex;align-items:center">
+    <div class="logo">ME</div>
+    <div style="margin-left:10px">
+      <div class="h-title">物件進捗ダッシュボード</div>
+      <div class="h-sub">株式会社メディアエステート</div>
+    </div>
+  </div>
+  <div class="h-stamp">5.14 時点</div>
+</header>
+
+<main class="main">
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="fbar">
+    <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1">
+      <button class="chip a-all" data-s="all">すべて</button>
+      <button class="chip" data-s="公開中">公開中</button>
+      <button class="chip" data-s="申込中">申込あり</button>
+      <button class="chip" data-s="非公開">非公開</button>
+      <button class="chip" data-s="成約済">成約済み</button>
+    </div>
+    <div class="sep"></div>
+    <select id="areaF">
+      <option value="all">全エリア</option>
+      <option value="市内">市内（佐賀市）</option>
+      <option value="唐津市">唐津市</option>
+      <option value="神埼市">神埼市</option>
+      <option value="小城市">小城市</option>
+      <option value="杵島郡">杵島郡</option>
+    </select>
+    <select id="hmF">
+      <option value="all">全メーカー</option>
+      <option value="アーネストワン">アーネストワン</option>
+      <option value="よかタウン">よかタウン</option>
+    </select>
+    <div class="vbtns">
+      <button class="vbtn active" id="btnC">⊞</button>
+      <button class="vbtn" id="btnT">☰</button>
+    </div>
+  </div>
+  <div class="count" id="count"></div>
+  <div id="cardView"></div>
+  <div id="tableView" class="hidden twrap"></div>
+</main>
+
+<div class="moverlay hidden" id="overlay" onclick="ovClick(event)">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const DATA=[
+  {name:"北川副町光法第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"北川副町大字光法1196-8",price:2188,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"北川副",equip:"オール電化",floor:"4LDK",note:"5/14新規追加"},
+  {name:"北川副町光法第3",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"北川副町大字光法1196-8",price:2288,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"北川副",equip:"オール電化",floor:"4LDK",note:"5/14新規追加"},
+  {name:"神野西第7",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"神野西三丁目10-6",price:2788,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"神野",equip:"オール電化",floor:"4LDK",note:"2,888万→2,788万（5/14値下げ）"},
+  {name:"西田代第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"西田代一丁目3-8",price:2988,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"完成",comp:"即可",school:"日新",equip:"オール電化",floor:"4LDK+S",note:"竣工済み"},
+  {name:"大和町久池井第28",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町久池井4169",price:2388,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"春日北",equip:"オール電化",floor:"4LDK",note:""},
+  {name:"大和町久池井第28",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"大和町久池井4170",price:2288,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"春日北",equip:"オール電化",floor:"4LDK",note:""},
+  {name:"大和町川上第3",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"大和町川上5534-16",price:2288,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"川上",equip:"オール電化",floor:"3LDK（平屋）",note:"2,388万→2,288万（5/14値下げ）"},
+  {name:"金立町千布第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"金立町千布2260",price:2188,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"上棟",comp:"2026年6月予定",school:"金立",equip:"オール電化",floor:"4LDK",note:""},
+  {name:"高木瀬西第11",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"高木瀬西五丁目6-25",price:2788,status:"非公開",suumo:"非公開",ah:"公開中",iera:"公開中",progress:"上棟開始",comp:"2026年7月予定",school:"高木瀬",equip:"オール電化",floor:"4LDK+S",note:"4/23新規"},
+  {name:"高木瀬西第11",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"高木瀬西五丁目6-25",price:2888,status:"非公開",suumo:"非公開",ah:"公開中",iera:"公開中",progress:"上棟開始",comp:"2026年7月予定",school:"高木瀬",equip:"オール電化",floor:"4LDK+S",note:"4/23新規"},
+  {name:"高木瀬東第17",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"高木瀬東三丁目11-12",price:2788,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"基礎",comp:"2026年7月予定",school:"高木瀬",equip:"オール電化",floor:"4LDK",note:"4/16新規"},
+  {name:"高木瀬東第17",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"高木瀬東三丁目11-12",price:2688,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"基礎",comp:"2026年7月予定",school:"高木瀬",equip:"オール電化",floor:"4LDK",note:"4/16新規"},
+  {name:"高木瀬東第17",num:"3号棟",area:"市内",hm:"アーネストワン",addr:"高木瀬東三丁目11-12",price:2888,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"基礎",comp:"2026年7月予定",school:"高木瀬",equip:"オール電化",floor:"4LDK",note:"4/16新規"},
+  {name:"光第8",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"光二丁目6-15",price:2488,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"西与賀",equip:"オール電化",floor:"",note:"4/20値下げ"},
+  {name:"三日月町久米第10",num:"1号棟",area:"小城市",hm:"アーネストワン",addr:"三日月町久米569",price:2288,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"完成",comp:"即可",school:"桜岡・三日月",equip:"オール電化",floor:"4LDK",note:"竣工済み"},
+  {name:"神埼町本堀第1",num:"2号棟",area:"神埼市",hm:"アーネストワン",addr:"神埼町本堀2598-4",price:1988,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"神埼",equip:"オール電化",floor:"4LDK",note:"2,188万→1,988万（5/14値下げ）"},
+  {name:"江北町惣領分第1",num:"2号棟",area:"杵島郡",hm:"アーネストワン",addr:"江北町惣領分1931",price:2088,status:"非公開",suumo:"非公開",ah:"公開中",iera:"掲載なし",progress:"完成",comp:"即可",school:"江北",equip:"オール電化",floor:"3LDK",note:"劣後物件・5/14値下げ"},
+  {name:"江北町惣領分第1",num:"3号棟",area:"杵島郡",hm:"アーネストワン",addr:"江北町惣領分1931",price:1988,status:"非公開",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"江北",equip:"オール電化",floor:"3LDK",note:"劣後物件"},
+  {name:"旭が丘第1",num:"1号棟",area:"唐津市",hm:"アーネストワン",addr:"旭が丘6-7",price:2588,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"外町",equip:"オール電化",floor:"4LDK+S",note:""},
+  {name:"本庄町7期",num:"1号棟",area:"市内",hm:"よかタウン",addr:"本庄町大字本庄1304-7",price:2898,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"本庄",equip:"",floor:"4LDK+S",note:"5/12新規"},
+  {name:"本庄町7期",num:"2号棟",area:"市内",hm:"よかタウン",addr:"本庄町大字本庄1304-7",price:3098,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"本庄",equip:"",floor:"4LDK",note:"5/12新規"},
+  {name:"牛津町乙柳2期",num:"9号棟",area:"小城市",hm:"よかタウン",addr:"牛津町乙柳1145-24",price:2498,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"",equip:"",floor:"4LDK",note:"5/14新規"},
+  {name:"旭が丘第1",num:"2号棟",area:"唐津市",hm:"アーネストワン",addr:"旭が丘6-7",price:2488,status:"申込中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"外町",equip:"オール電化",floor:"4LDK+S",note:"5/14申込"},
+  {name:"光第8",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"光二丁目6-15",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"西与賀",equip:"オール電化",floor:"",note:"5/14成約"},
+  {name:"神埼町本堀第1",num:"1号棟",area:"神埼市",hm:"アーネストワン",addr:"神埼町本堀2598-4",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"完成",comp:"即可",school:"神埼",equip:"オール電化",floor:"4LDK",note:"5/14成約"},
+  {name:"大和町東山田第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町東山田2832-6",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"",comp:"",school:"川上",equip:"",floor:"",note:"5/14成約（5/10申込）"},
+  {name:"高木瀬西第10",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"高木瀬西五丁目12-25",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"",comp:"",school:"高木瀬",equip:"",floor:"",note:"5/14成約（5/10申込）"},
+  {name:"光第8",num:"1号棟(旧)",area:"市内",hm:"アーネストワン",addr:"光二丁目6-15",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"西与賀",equip:"",floor:"",note:"5/10成約"},
+  {name:"金立町千布第3",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"金立町千布2260",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"金立",equip:"",floor:"",note:"5/10成約"},
+  {name:"大和町尼寺第23",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"大和町尼寺1293",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"",comp:"",school:"春日",equip:"",floor:"",note:"5/10成約"},
+  {name:"大和町久池井第27",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町久池井1543-33",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"春日北",equip:"",floor:"",note:"5/10成約"},
+  {name:"大和町尼寺第24",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町尼寺3546-5",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"春日",equip:"",floor:"",note:"4/16成約"},
+  {name:"江北町惣領分第1",num:"1号棟",area:"杵島郡",hm:"アーネストワン",addr:"江北町惣領分1931",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"江北",equip:"オール電化",floor:"3LDK",note:"成約済"},
+  {name:"東町第1",num:"1号棟",area:"唐津市",hm:"アーネストワン",addr:"東町66-1",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"外町",equip:"",floor:"",note:"4/16成約"},
+  {name:"大和町尼寺第23",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町尼寺1293",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"春日",equip:"",floor:"",note:"成約済"},
+  {name:"神野西第7",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"神野西三丁目10-6",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"神野",equip:"オール電化",floor:"4LDK",note:"成約済"},
+  {name:"神野西第6",num:"3号棟",area:"市内",hm:"アーネストワン",addr:"神野西三丁目14-56",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"",comp:"",school:"神野",equip:"",floor:"",note:"成約済"},
+  {name:"大和町川上第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町川上5534-16",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"川上",equip:"オール電化",floor:"3LDK（平屋）",note:"平屋・成約済"},
+  {name:"開成第9",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"開成4-2-35",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"",comp:"",school:"",equip:"",floor:"",note:"5/10成約（専任）"},
+  {name:"開成第9",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"開成4-2-35",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"",comp:"",school:"",equip:"",floor:"",note:"成約済（専任）"},
+];
+
+let fS='all',fA='all',fH='all',view='card';
+
+const pc=v=>v==='公開中'?'pt-pub':v==='非公開'?'pt-nopub':'pt-none';
+const bc=s=>s==='公開中'?'sb-open':s==='申込中'?'sb-applied':s==='非公開'?'sb-hid':'sb-sold';
+const bl=s=>s==='申込中'?'申込あり':s==='成約済'?'成約済み':s;
+
+function filtered(){return DATA.filter(p=>(fS==='all'||p.status===fS)&&(fA==='all'||p.area===fA)&&(fH==='all'||p.hm===fH));}
+
+function renderKPI(){
+  const o=DATA.filter(p=>p.status==='公開中').length;
+  const a=DATA.filter(p=>p.status==='申込中').length;
+  const h=DATA.filter(p=>p.status==='非公開').length;
+  const s=DATA.filter(p=>p.status==='成約済').length;
+  document.getElementById('kpiGrid').innerHTML=
+    `<div class="kpi open${fS==='公開中'?' active':''}" onclick="setF('公開中')"><div class="kpi-n">${o}</div><div class="kpi-l">公開中</div></div>`+
+    `<div class="kpi applied${fS==='申込中'?' active':''}" onclick="setF('申込中')"><div class="kpi-n">${a}</div><div class="kpi-l">申込あり</div></div>`+
+    `<div class="kpi hid${fS==='非公開'?' active':''}" onclick="setF('非公開')"><div class="kpi-n">${h}</div><div class="kpi-l">非公開</div></div>`+
+    `<div class="kpi sold${fS==='成約済'?' active':''}" onclick="setF('成約済')"><div class="kpi-n">${s}</div><div class="kpi-l">成約済み</div></div>`;
+}
+
+function setF(s){fS=fS===s?'all':s;updateChips();render();}
+
+function updateChips(){
+  const map={all:'a-all','公開中':'a-open','申込中':'a-applied','非公開':'a-hid','成約済':'a-sold'};
+  document.querySelectorAll('#chips .chip').forEach(c=>{
+    c.className='chip';
+    if((fS==='all'&&c.dataset.s==='all')||(c.dataset.s===fS))c.className='chip '+(map[fS]||'a-all');
+  });
+}
+
+function renderCards(data){
+  const areas=[...new Set(data.map(p=>p.area))];
+  let h='';
+  areas.forEach(area=>{
+    const ps=data.filter(p=>p.area===area);
+    h+=`<div class="area-sec"><div class="area-hd">${area}（${ps.length}件）</div><div class="cgrid">`;
+    ps.forEach(p=>{
+      const i=DATA.indexOf(p),sold=p.status==='成約済';
+      const isDown=p.note&&p.note.includes('値下げ');
+      const isNew=p.note&&p.note.includes('新規');
+      h+=`<div class="pcard${sold?' sold':''}" onclick="openM(${i})">
+        <div class="hmbadge${p.hm==='よかタウン'?' yoka':''}">${p.hm==='アーネストワン'?'AW1':p.hm.slice(0,4)}</div>
+        <div class="ct"><div><div class="cn">${p.name}</div><div class="cnum">${p.num}</div></div><span class="sbadge ${bc(p.status)}">${bl(p.status)}</span></div>
+        ${sold?`<div class="cprice sp">成約済み</div>`:`<div class="cprice">${p.price.toLocaleString()}<span class="yen">万円</span></div>`}
+        <div class="cmeta">
+          ${p.addr?`<div class="mrow">📍 ${p.addr}</div>`:''}
+          ${p.progress?`<div class="mrow">🏗 ${p.progress}・${p.comp}</div>`:''}
+          ${p.school?`<div class="mrow">🏫 ${p.school}小学校区</div>`:''}
+        </div>
+        <div class="portals">
+          <span class="ptag ${pc(p.suumo)}">S:${p.suumo}</span>
+          <span class="ptag ${pc(p.ah)}">AH:${p.ah}</span>
+          <span class="ptag ${pc(p.iera)}">いえ:${p.iera}</span>
+        </div>
+        ${isDown?`<span class="calert al-down">▼ 価格変更</span>`:''}
+        ${isNew&&!isDown?`<span class="calert al-new">★ 新規</span>`:''}
+      </div>`;
+    });
+    h+=`</div></div>`;
+  });
+  document.getElementById('cardView').innerHTML=h;
+}
+
+function renderTable(data){
+  let h=`<table><thead><tr><th>物件名</th><th>号棟</th><th>エリア</th><th>HM</th><th>価格(万)</th><th>状態</th><th>SUUMO</th><th>AH</th><th>いえらぶ</th><th>進捗</th><th>完成</th><th>備考</th></tr></thead><tbody>`;
+  data.forEach(p=>{
+    const i=DATA.indexOf(p),sold=p.status==='成約済';
+    h+=`<tr class="${sold?'ts':''}" onclick="openM(${i})"><td><strong>${p.name}</strong></td><td>${p.num}</td><td>${p.area}</td><td>${p.hm}</td><td>${sold?'—':p.price.toLocaleString()}</td><td><span class="sbadge ${bc(p.status)}">${bl(p.status)}</span></td><td><span class="ptag ${pc(p.suumo)}">${p.suumo}</span></td><td><span class="ptag ${pc(p.ah)}">${p.ah}</span></td><td><span class="ptag ${pc(p.iera)}">${p.iera}</span></td><td>${p.progress||'—'}</td><td>${p.comp||'—'}</td><td style="font-size:11px;color:#6B7280;max-width:130px">${p.note||''}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('tableView').innerHTML=h;
+}
+
+function render(){
+  const data=filtered();
+  document.getElementById('count').textContent=`${data.length}件表示中（全${DATA.length}件）`;
+  renderKPI();renderCards(data);renderTable(data);
+}
+
+function openM(idx){
+  const p=DATA[idx];if(!p)return;
+  const sold=p.status==='成約済';
+  const map=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('佐賀県 '+p.addr)}`;
+  document.getElementById('modal').innerHTML=`
+    <div class="mhdr"><div><div class="mtitle">${p.name} <span style="font-weight:400;color:#6B7280">${p.num}</span></div><div class="msub">${p.hm}　${p.area}　${p.addr}</div></div><button class="mclose" onclick="closeM()">✕</button></div>
+    <div class="mbody">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span class="sbadge ${bc(p.status)}" style="font-size:12px;padding:4px 12px">${bl(p.status)}</span></div>
+      ${sold?`<div class="mprice" style="color:#EF4444">成約済み</div>`:`<div class="mprice">${p.price.toLocaleString()}<span class="yen">万円</span></div>`}
+      <div class="msect"><div class="msect-t">物件詳細</div><div class="dgrid">
+        <div class="di"><label>現場進捗</label><span>${p.progress||'—'}</span></div>
+        <div class="di"><label>完成時期</label><span>${p.comp||'—'}</span></div>
+        <div class="di"><label>小学校区</label><span>${p.school?p.school+'小':'—'}</span></div>
+        <div class="di"><label>間取り</label><span>${p.floor||'—'}</span></div>
+        <div class="di"><label>設備</label><span>${p.equip||'—'}</span></div>
+      </div></div>
+      <div class="msect"><div class="msect-t">ポータル掲載状況</div><div class="pgrid">
+        <div class="pbox"><div class="pbox-l">SUUMO</div><span class="ptag ${pc(p.suumo)}">${p.suumo}</span></div>
+        <div class="pbox"><div class="pbox-l">アットホーム</div><span class="ptag ${pc(p.ah)}">${p.ah}</span></div>
+        <div class="pbox"><div class="pbox-l">いえらぶ</div><span class="ptag ${pc(p.iera)}">${p.iera}</span></div>
+      </div></div>
+      ${p.note?`<div class="msect"><div class="msect-t">備考</div><div class="nbox">${p.note}</div></div>`:''}
+      <a class="mlink" href="${map}" target="_blank" rel="noopener">📍 Googleマップで確認</a>
+    </div>`;
+  document.getElementById('overlay').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+}
+function closeM(){document.getElementById('overlay').classList.add('hidden');document.body.style.overflow='';}
+function ovClick(e){if(e.target===document.getElementById('overlay'))closeM();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+
+document.getElementById('chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;fS=c.dataset.s;updateChips();render();});
+document.getElementById('areaF').addEventListener('change',e=>{fA=e.target.value;render();});
+document.getElementById('hmF').addEventListener('change',e=>{fH=e.target.value;render();});
+document.getElementById('btnC').addEventListener('click',()=>{
+  view='card';document.getElementById('btnC').classList.add('active');document.getElementById('btnT').classList.remove('active');
+  document.getElementById('cardView').classList.remove('hidden');document.getElementById('tableView').classList.add('hidden');
+});
+document.getElementById('btnT').addEventListener('click',()=>{
+  view='table';document.getElementById('btnT').classList.add('active');document.getElementById('btnC').classList.remove('active');
+  document.getElementById('tableView').classList.remove('hidden');document.getElementById('cardView').classList.add('hidden');
+});
+
+render();
+</script>
+</body>
+</html>
