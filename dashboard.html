@@ -108,7 +108,7 @@ tr:not(.ts):hover td{background:#F8FAFF;cursor:pointer}
       <div class="h-sub">株式会社メディアエステート</div>
     </div>
   </div>
-  <div class="h-stamp">5.14 時点</div>
+  <div class="h-stamp">5.22 時点</div>
 </header>
 
 <main class="main">
@@ -151,8 +151,10 @@ tr:not(.ts):hover td{background:#F8FAFF;cursor:pointer}
 
 <script>
 const DATA=[
-  {name:"北川副町光法第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"北川副町大字光法1196-8",price:2188,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"北川副",equip:"オール電化",floor:"4LDK",note:"5/14新規追加"},
-  {name:"北川副町光法第3",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"北川副町大字光法1196-8",price:2288,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"北川副",equip:"オール電化",floor:"4LDK",note:"5/14新規追加"},
+  {name:"三日月町樋口第4",num:"1号棟",area:"小城市",hm:"アーネストワン",addr:"三日月町樋口999-4",price:1888,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"建築中",comp:"2026年7月予定",school:"三日月",equip:"オール電化",floor:"3LDK",note:"5/22新規・情報公開日5/29"},
+  {name:"三日月町樋口第4",num:"2号棟",area:"小城市",hm:"アーネストワン",addr:"三日月町樋口999-4",price:1988,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"建築中",comp:"2026年7月予定",school:"三日月",equip:"オール電化",floor:"4LDK",note:"5/22新規・情報公開日5/29"},
+  {name:"北川副町光法第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"北川副町大字光法1196-8",price:2188,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"上棟",comp:"2026年6月予定",school:"北川副",equip:"オール電化",floor:"4LDK",note:"5/14新規追加"},
+  {name:"北川副町光法第3",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"北川副町大字光法1196-8",price:2288,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"上棟",comp:"2026年6月予定",school:"北川副",equip:"オール電化",floor:"4LDK",note:"5/14新規追加"},
   {name:"神野西第7",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"神野西三丁目10-6",price:2788,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"神野",equip:"オール電化",floor:"4LDK",note:"2,888万→2,788万（5/14値下げ）"},
   {name:"西田代第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"西田代一丁目3-8",price:2988,status:"公開中",suumo:"公開中",ah:"公開中",iera:"掲載なし",progress:"完成",comp:"即可",school:"日新",equip:"オール電化",floor:"4LDK+S",note:"竣工済み"},
   {name:"大和町久池井第28",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町久池井4169",price:2388,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"春日北",equip:"オール電化",floor:"4LDK",note:""},
@@ -173,7 +175,7 @@ const DATA=[
   {name:"本庄町7期",num:"1号棟",area:"市内",hm:"よかタウン",addr:"本庄町大字本庄1304-7",price:2898,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"本庄",equip:"",floor:"4LDK+S",note:"5/12新規"},
   {name:"本庄町7期",num:"2号棟",area:"市内",hm:"よかタウン",addr:"本庄町大字本庄1304-7",price:3098,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"本庄",equip:"",floor:"4LDK",note:"5/12新規"},
   {name:"牛津町乙柳2期",num:"9号棟",area:"小城市",hm:"よかタウン",addr:"牛津町乙柳1145-24",price:2498,status:"公開中",suumo:"公開中",ah:"掲載なし",iera:"公開中",progress:"完成",comp:"即可",school:"",equip:"",floor:"4LDK",note:"5/14新規"},
-  {name:"旭が丘第1",num:"2号棟",area:"唐津市",hm:"アーネストワン",addr:"旭が丘6-7",price:2488,status:"申込中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"外町",equip:"オール電化",floor:"4LDK+S",note:"5/14申込"},
+  {name:"旭が丘第1",num:"2号棟",area:"唐津市",hm:"アーネストワン",addr:"旭が丘6-7",price:2488,status:"公開中",suumo:"公開中",ah:"公開中",iera:"公開中",progress:"完成",comp:"即可",school:"外町",equip:"オール電化",floor:"4LDK+S",note:""},
   {name:"光第8",num:"2号棟",area:"市内",hm:"アーネストワン",addr:"光二丁目6-15",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"完成",comp:"即可",school:"西与賀",equip:"オール電化",floor:"",note:"5/14成約"},
   {name:"神埼町本堀第1",num:"1号棟",area:"神埼市",hm:"アーネストワン",addr:"神埼町本堀2598-4",price:0,status:"成約済",suumo:"非公開",ah:"非公開",iera:"掲載なし",progress:"完成",comp:"即可",school:"神埼",equip:"オール電化",floor:"4LDK",note:"5/14成約"},
   {name:"大和町東山田第3",num:"1号棟",area:"市内",hm:"アーネストワン",addr:"大和町東山田2832-6",price:0,status:"成約済",suumo:"非公開",ah:"掲載なし",iera:"掲載なし",progress:"",comp:"",school:"川上",equip:"",floor:"",note:"5/14成約（5/10申込）"},
